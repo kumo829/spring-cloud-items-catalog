@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+}
+
+apply plugin: "maven"
+
+group = 'com.javatutoriales.springboot'
+version = '1.0.0'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compileOnly ('org.projectlombok:lombok:1.18.12',
+                 'jakarta.persistence:jakarta.persistence-api:2.2.3'
+    )
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+}
