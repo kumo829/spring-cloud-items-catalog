@@ -1,5 +1,6 @@
 package com.javatutoriales.springboot.oauthserver.security.event;
 
+import brave.Tracer;
 import com.javatutoriales.springboot.commons.usuarios.Usuario;
 import com.javatutoriales.springboot.oauthserver.services.IUsuarioService;
 import feign.FeignException;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class AuthenticationSuccessErrorHandler implements AuthenticationEventPublisher {
 
     private final IUsuarioService usuarioService;
+    private final Tracer tracer;
 
     @Override
     public void publishAuthenticationSuccess(Authentication authentication) {
@@ -38,20 +40,26 @@ public class AuthenticationSuccessErrorHandler implements AuthenticationEventPub
         System.out.println("Error en autenticación: " + exception.getMessage());
 
         try {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Error en autenticación: " + exception.getMessage());
             Usuario usuario = usuarioService.findByUsername(authentication.getName());
+            log.info("User id: {}", usuario.getId());
             if (usuario.getIntentos() == null) {
                 usuario.setIntentos(0);
             }
 
             usuario.setIntentos(usuario.getIntentos() + 1);
             log.info("Intentos actual es de {}", usuario.getIntentos());
+            builder.append(String.format("Intentos actual es de {}", usuario.getIntentos()));
 
             if (usuario.getIntentos() >= 3) {
                 log.error("Usuario {} deshabilitado por maximos intentos", usuario.getNombre());
+                builder.append(String.format("Usuario {} deshabilitado por maximos intentos", usuario.getNombre()));
                 usuario.setEnabled(false);
             }
 
             usuarioService.update(usuario, usuario.getId());
+            tracer.currentSpan().tag("error.message", builder.toString());
         } catch (FeignException e) {
             log.error(String.format("El usuario %s no existe en el sistema", authentication.getName()));
         }

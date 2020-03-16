@@ -1,5 +1,6 @@
 package com.javatutoriales.springboot.oauthserver.services;
 
+import brave.Tracer;
 import com.javatutoriales.springboot.commons.usuarios.Usuario;
 import com.javatutoriales.springboot.oauthserver.client.UsuarioFeignClient;
 import feign.FeignException;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class UsuarioService implements UserDetailsService, IUsuarioService {
 
     private final UsuarioFeignClient client;
+    private final Tracer tracer;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -33,7 +35,9 @@ public class UsuarioService implements UserDetailsService, IUsuarioService {
 
             return new User(usuario.getUsername(), usuario.getPassword(), usuario.getEnabled(), true, true, true, authorities);
         } catch (FeignException e) {
-            log.error("Error en login, no existe el usuario %s", username);
+            String message = String.format("Error en login, no existe el usuario %s", username);
+            log.error(message);
+            tracer.currentSpan().tag("error.message", message + ":" + e.getMessage());
             throw new UsernameNotFoundException("No existe el usuario en el sistema");
         }
     }
